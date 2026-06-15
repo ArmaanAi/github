@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Neon Quest</string>
+    <string name="title_activity_main">Neon Quest</string>
+    <string name="package_name">com.neonquest.game</string>
+    <string name="custom_url_scheme">com.neonquest.game</string>
+</resources>
