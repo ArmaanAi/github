@@ -5,6 +5,9 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
+// --- Detect Mobile ---
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 // --- Scene Setup ---
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x00050a);
@@ -40,22 +43,10 @@ const controls = new PointerLockControls(camera, document.body);
 const startButton = document.getElementById('start-button');
 const storyOverlay = document.getElementById('story-overlay');
 const instructions = document.getElementById('instructions');
-
-startButton.addEventListener('click', () => {
-    controls.lock();
-});
-
-controls.addEventListener('lock', () => {
-    storyOverlay.style.display = 'none';
-    instructions.style.display = 'block';
-});
-
-controls.addEventListener('unlock', () => {
-    storyOverlay.style.display = 'flex';
-    instructions.style.display = 'none';
-});
-
-scene.add(controls.object);
+const pcInstructions = document.getElementById('pc-instructions');
+const mobileInstructions = document.getElementById('mobile-instructions');
+const joystickContainer = document.getElementById('joystick-container');
+const joystick = document.getElementById('joystick');
 
 const moveState = {
     forward: false,
@@ -68,24 +59,43 @@ const moveState = {
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 
+startButton.addEventListener('click', () => {
+    if (isMobile) {
+        storyOverlay.style.display = 'none';
+        instructions.style.display = 'block';
+        pcInstructions.style.display = 'none';
+        mobileInstructions.style.display = 'block';
+        joystickContainer.style.display = 'block';
+    } else {
+        controls.lock();
+    }
+});
+
+controls.addEventListener('lock', () => {
+    storyOverlay.style.display = 'none';
+    instructions.style.display = 'block';
+    pcInstructions.style.display = 'block';
+    mobileInstructions.style.display = 'none';
+});
+
+controls.addEventListener('unlock', () => {
+    storyOverlay.style.display = 'flex';
+    instructions.style.display = 'none';
+});
+
+scene.add(controls.object);
+
+// Keyboard Controls
 const onKeyDown = (event) => {
     switch (event.code) {
         case 'ArrowUp':
-        case 'KeyW':
-            moveState.forward = true;
-            break;
+        case 'KeyW': moveState.forward = true; break;
         case 'ArrowLeft':
-        case 'KeyA':
-            moveState.left = true;
-            break;
+        case 'KeyA': moveState.left = true; break;
         case 'ArrowDown':
-        case 'KeyS':
-            moveState.backward = true;
-            break;
+        case 'KeyS': moveState.backward = true; break;
         case 'ArrowRight':
-        case 'KeyD':
-            moveState.right = true;
-            break;
+        case 'KeyD': moveState.right = true; break;
         case 'Space':
             if (moveState.canJump === true) velocity.y += 30;
             moveState.canJump = false;
@@ -96,26 +106,100 @@ const onKeyDown = (event) => {
 const onKeyUp = (event) => {
     switch (event.code) {
         case 'ArrowUp':
-        case 'KeyW':
-            moveState.forward = false;
-            break;
+        case 'KeyW': moveState.forward = false; break;
         case 'ArrowLeft':
-        case 'KeyA':
-            moveState.left = false;
-            break;
+        case 'KeyA': moveState.left = false; break;
         case 'ArrowDown':
-        case 'KeyS':
-            moveState.backward = false;
-            break;
+        case 'KeyS': moveState.backward = false; break;
         case 'ArrowRight':
-        case 'KeyD':
-            moveState.right = false;
-            break;
+        case 'KeyD': moveState.right = false; break;
     }
 };
 
 document.addEventListener('keydown', onKeyDown);
 document.addEventListener('keyup', onKeyUp);
+
+// Touch Controls (Mobile)
+if (isMobile) {
+    let joystickActive = false;
+    let joystickOrigin = { x: 0, y: 0 };
+
+    joystickContainer.addEventListener('touchstart', (e) => {
+        joystickActive = true;
+        const touch = e.touches[0];
+        const rect = joystickContainer.getBoundingClientRect();
+        joystickOrigin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        e.preventDefault();
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!joystickActive) return;
+        const touch = e.touches[0];
+        const dx = touch.clientX - joystickOrigin.x;
+        const dy = touch.clientY - joystickOrigin.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxDist = 50;
+
+        const angle = Math.atan2(dy, dx);
+        const limitedDist = Math.min(dist, maxDist);
+
+        const x = Math.cos(angle) * limitedDist;
+        const y = Math.sin(angle) * limitedDist;
+
+        joystick.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+
+        moveState.forward = y < -20;
+        moveState.backward = y > 20;
+        moveState.left = x < -20;
+        moveState.right = x > 20;
+    });
+
+    window.addEventListener('touchend', () => {
+        joystickActive = false;
+        joystick.style.transform = 'translate(-50%, -50%)';
+        moveState.forward = false;
+        moveState.backward = false;
+        moveState.left = false;
+        moveState.right = false;
+    });
+
+    // Tap to jump and look
+    let lastTapTime = 0;
+    window.addEventListener('touchstart', (e) => {
+        if (e.target === joystickContainer || e.target === joystick) return;
+
+        const currentTime = new Date().getTime();
+        const tapLength = currentTime - lastTapTime;
+        if (tapLength < 300 && tapLength > 0) {
+            if (moveState.canJump === true) velocity.y += 30;
+            moveState.canJump = false;
+        }
+        lastTapTime = currentTime;
+    });
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    window.addEventListener('touchstart', (e) => {
+        if (e.target === joystickContainer || e.target === joystick) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        if (e.target === joystickContainer || e.target === joystick) return;
+        const touchX = e.touches[0].clientX;
+        const touchY = e.touches[0].clientY;
+        const dx = touchX - touchStartX;
+        const dy = touchY - touchStartY;
+
+        controls.object.rotation.y -= dx * 0.005;
+        camera.rotation.x -= dy * 0.005;
+        camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+
+        touchStartX = touchX;
+        touchStartY = touchY;
+    });
+}
 
 // --- Lighting ---
 const ambientLight = new THREE.AmbientLight(0x0a0a20, 0.5);
@@ -126,11 +210,9 @@ pointLight.position.set(0, 10, 0);
 scene.add(pointLight);
 
 // --- Environment ---
-// Floor Grid
 const gridHelper = new THREE.GridHelper(1000, 100, 0x00ffff, 0x002222);
 scene.add(gridHelper);
 
-// Neon Pillars
 const pillarGeometry = new THREE.BoxGeometry(1, 10, 1);
 const pillarMaterial = new THREE.MeshBasicMaterial({ color: 0x00ffff });
 
@@ -141,7 +223,6 @@ for (let i = 0; i < 50; i++) {
     pillar.position.y = 5;
     scene.add(pillar);
 
-    // Add a light to some pillars
     if (Math.random() > 0.8) {
         const pLight = new THREE.PointLight(0xff00ff, 1, 20);
         pLight.position.copy(pillar.position);
@@ -150,7 +231,6 @@ for (let i = 0; i < 50; i++) {
     }
 }
 
-// Power Cores (Cubes)
 const coreGeometry = new THREE.BoxGeometry(1, 1, 1);
 const coreMaterial = new THREE.MeshBasicMaterial({ color: 0xff00ff });
 
@@ -177,7 +257,7 @@ function animate() {
     requestAnimationFrame(animate);
 
     const time = performance.now();
-    if (controls.isLocked === true) {
+    if (controls.isLocked === true || isMobile) {
         const delta = (time - prevTime) / 1000;
 
         velocity.x -= velocity.x * 10.0 * delta;
@@ -202,7 +282,6 @@ function animate() {
             moveState.canJump = true;
         }
 
-        // Rotate cores
         scene.traverse((child) => {
             if (child.userData.isCore) {
                 child.rotation.x += 0.01;

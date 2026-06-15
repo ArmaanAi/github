@@ -58,4 +58,29 @@ h1 {
     text-align: center;
     font-size: 1rem;
     text-shadow: 0 0 5px #0ff;
+    z-index: 5;
+}
+
+#joystick-container {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    width: 100px;
+    height: 100px;
+    background: rgba(0, 255, 255, 0.2);
+    border: 2px solid #0ff;
+    border-radius: 50%;
+    pointer-events: auto;
+}
+
+#joystick {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    background: #0ff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 10px #0ff;
 }

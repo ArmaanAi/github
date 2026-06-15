@@ -19,7 +19,11 @@
             <button id="start-button">START MISSION</button>
         </div>
         <div id="instructions" style="display: none;">
-            <p>W, A, S, D to move | SPACE to jump | MOUSE to look</p>
+            <p id="pc-instructions">W, A, S, D to move | SPACE to jump | MOUSE to look</p>
+            <p id="mobile-instructions" style="display: none;">Touch left side to move | Touch right side to look | Double tap to jump</p>
+        </div>
+        <div id="joystick-container" style="display: none;">
+            <div id="joystick"></div>
         </div>
     </div>
     <script type="module" src="/main.js"></script>
