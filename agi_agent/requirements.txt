@@ -1,0 +1,14 @@
+openai
+anthropic
+playwright
+selenium
+chromadb
+python-dotenv
+asyncio
+fastapi
+uvicorn
+beautifulsoup4
+webdriver-manager
+langchain
+langchain-openai
+langchain-anthropic

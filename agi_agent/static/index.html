@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AGI Core - Autonomous Interface</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0a0a0a; color: #00ffcc; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        header { padding: 20px; background: #111; border-bottom: 1px solid #00ffcc; text-align: center; font-size: 24px; letter-spacing: 2px; }
+        #terminal { flex: 1; padding: 20px; overflow-y: auto; background: #000; border: 1px solid #333; margin: 20px; font-family: 'Courier New', Courier, monospace; }
+        .log { margin-bottom: 10px; border-left: 3px solid #333; padding-left: 10px; }
+        .agi { color: #00ffcc; }
+        .user { color: #ff00ff; }
+        .system { color: #888; font-style: italic; }
+        #input-area { padding: 20px; background: #111; display: flex; gap: 10px; }
+        input { flex: 1; background: #000; border: 1px solid #00ffcc; color: #fff; padding: 10px; font-size: 16px; }
+        button { background: #00ffcc; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #fff; }
+    </style>
+</head>
+<body>
+    <header>AGI AUTONOMOUS CORE v1.0</header>
+    <div id="terminal">
+        <div class="log system">[System] Initializing Neural Links...</div>
+        <div class="log system">[System] Bypassing Internet Limits...</div>
+        <div class="log system">[System] Autonomous Loop Active.</div>
+    </div>
+    <div id="input-area">
+        <input type="text" id="user-input" placeholder="Type a command or question for the AGI..." autocomplete="off">
+        <button onclick="sendCommand()">EXECUTE</button>
+    </div>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+        const input = document.getElementById('user-input');
+
+        function addLog(text, type) {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.innerText = text;
+            terminal.appendChild(div);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function sendCommand() {
+            const cmd = input.value;
+            if (!cmd) return;
+            addLog(`> ${cmd}`, 'user');
+            input.value = '';
+
+            try {
+                const response = await fetch('/api/command', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: cmd })
+                });
+                const data = await response.json();
+                addLog(`[AGI] ${data.response}`, 'agi');
+            } catch (e) {
+                addLog(`[System] Connection error.`, 'system');
+            }
+        }
+
+        input.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendCommand(); });
+
+        // Simulate background activity logs
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                if (data.log) addLog(data.log, 'system');
+            } catch(e) {}
+        }, 5000);
+    </script>
+</body>
+</html>
