@@ -5,6 +5,8 @@ selenium
 chromadb
 python-dotenv
 asyncio
+fastapi
+uvicorn
 beautifulsoup4
 webdriver-manager
 langchain

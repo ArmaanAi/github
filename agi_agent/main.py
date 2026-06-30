@@ -1,9 +1,19 @@
 import asyncio
 import os
+import uvicorn
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from typing import List, Dict, Any
 from brain import DualBrain
 from researcher import AdvancedResearcher
 from memory import LongTermMemory
+
+app = FastAPI()
+agi_engine = None
+
+class CommandRequest(BaseModel):
+    command: str
 
 class AGIEngine:
     def __init__(self):
@@ -83,23 +93,41 @@ class AGIEngine:
             await asyncio.sleep(30)
 
     async def user_interaction_listener(self):
-        """Allows the user to talk to the AGI while it's working."""
-        print("[AGI] User Interaction Listener Active.")
+        """User interaction is now handled via FastAPI, so this is a placeholder for logs."""
+        print("[AGI] Web Interaction Interface Active.")
         while self.is_running:
-            # In a real app, this might be a web socket or a terminal input
-            # For this prototype, we'll use a file-based trigger or a simple input
-            user_input = await asyncio.to_thread(input, "User Interaction (Type a question or command): ")
-            if user_input.lower() in ['exit', 'quit']:
-                self.is_running = False
-                break
-
-            # Add user task to the high-priority front of the queue
-            self.internal_state["goals"].insert(0, user_input)
-            print(f"[AGI] User input received and prioritized: {user_input}")
+            await asyncio.sleep(1)
 
     def start(self):
-        asyncio.run(self.run_autonomous_loop())
+        # This will be called via the web server integration
+        loop = asyncio.get_event_loop()
+        loop.create_task(self.run_autonomous_loop())
+
+@app.on_event("startup")
+async def startup_event():
+    global agi_engine
+    agi_engine = AGIEngine()
+    agi_engine.start()
+
+@app.post("/api/command")
+async def handle_command(req: CommandRequest):
+    # Add to goals and return the processing status
+    agi_engine.internal_state["goals"].insert(0, req.command)
+    return {"status": "success", "response": f"Task '{req.command}' prioritized. I am beginning research."}
+
+@app.get("/api/status")
+async def get_status():
+    # Return some random system status or logs for the terminal UI
+    status_logs = [
+        "Scanning internet for new data clusters...",
+        "Updating internal opinions based on recent findings.",
+        f"Active goals in queue: {len(agi_engine.internal_state['goals'])}",
+        f"Current opinions formed: {len(agi_engine.internal_state['opinions'])}"
+    ]
+    import random
+    return {"log": random.choice(status_logs)}
+
+app.mount("/", StaticFiles(directory="agi_agent/static", html=True), name="static")
 
 if __name__ == "__main__":
-    engine = AGIEngine()
-    engine.start()
+    uvicorn.run(app, host="0.0.0.0", port=8000)
